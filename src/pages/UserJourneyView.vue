@@ -1,19 +1,29 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import DashboardSplitLayout from '../components/templates/DashboardSplitLayout.vue';
 import UserListSidebar from '../components/organisms/UserListSidebar.vue';
 import SessionJourneyBlock from '../components/organisms/SessionJourneyBlock.vue';
 import BaseAvatar from '../components/atoms/BaseAvatar.vue';
 import StatusBadge from '../components/atoms/StatusBadge.vue';
 import TimeLabel from '../components/atoms/TimeLabel.vue';
-import { useMockData } from '../composables/useMockData';
-import { UserCircle, Activity, MessageSquare, TrendingUp } from 'lucide-vue-next';
+import { useRealData } from '../composables/useRealData';
+import { UserCircle, Activity, MessageSquare, TrendingUp, RefreshCw } from 'lucide-vue-next';
 
-// Load mock data
-const { users, sessions, sessionFlows } = useMockData();
+// Load real data from API
+const { users, sessions, sessionFlows, loading, error, fetchUserSessions, refreshData } = useRealData();
 
 // State
 const selectedUserId = ref(null);
+const userSessionsLoading = ref(false);
+
+// Watch for user selection and fetch their sessions
+watch(selectedUserId, async (newUserId) => {
+  if (newUserId) {
+    userSessionsLoading.value = true;
+    await fetchUserSessions(newUserId);
+    userSessionsLoading.value = false;
+  }
+});
 
 // Computed
 const selectedUser = computed(() => {
@@ -53,6 +63,13 @@ const handleSelectUser = (userId) => {
   selectedUserId.value = userId;
 };
 
+const handleRefresh = async () => {
+  await refreshData();
+  if (selectedUserId.value) {
+    await fetchUserSessions(selectedUserId.value);
+  }
+};
+
 const formatDuration = (seconds) => {
   const minutes = Math.floor(seconds / 60);
   const secs = seconds % 60;
@@ -64,11 +81,37 @@ const formatDuration = (seconds) => {
   <DashboardSplitLayout>
     <!-- Left Sidebar -->
     <template #sidebar>
-      <UserListSidebar
-        :users="users"
-        :selectedUserId="selectedUserId"
-        @select-user="handleSelectUser"
-      />
+      <div class="flex flex-col h-full">
+        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-800">Users</h2>
+          <button
+            @click="handleRefresh"
+            :disabled="loading"
+            class="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            title="Refresh data"
+          >
+            <RefreshCw :size="18" :class="{ 'animate-spin': loading }" class="text-gray-600" />
+          </button>
+        </div>
+        
+        <div v-if="error" class="p-4 bg-red-50 border-b border-red-200">
+          <p class="text-sm text-red-600">{{ error }}</p>
+        </div>
+        
+        <div v-if="loading && users.length === 0" class="flex-1 flex items-center justify-center">
+          <div class="text-center">
+            <RefreshCw :size="32" class="animate-spin text-gray-400 mx-auto mb-2" />
+            <p class="text-sm text-gray-500">Loading users...</p>
+          </div>
+        </div>
+        
+        <UserListSidebar
+          v-else
+          :users="users"
+          :selectedUserId="selectedUserId"
+          @select-user="handleSelectUser"
+        />
+      </div>
     </template>
     
     <!-- Right Content Area -->
@@ -154,7 +197,13 @@ const formatDuration = (seconds) => {
         
         <!-- Journey Timeline -->
         <div class="flex-1 overflow-y-auto p-6">
-          <div v-if="userSessions.length === 0" class="text-center py-12">
+          <div v-if="userSessionsLoading" class="text-center py-12">
+            <RefreshCw :size="48" class="animate-spin mx-auto mb-3 text-gray-400" />
+            <h3 class="text-lg font-semibold text-gray-700 mb-1">Loading Sessions...</h3>
+            <p class="text-gray-500">Fetching user journey data</p>
+          </div>
+          
+          <div v-else-if="userSessions.length === 0" class="text-center py-12">
             <Activity :size="48" class="mx-auto mb-3 text-gray-300" />
             <h3 class="text-lg font-semibold text-gray-700 mb-1">No Sessions Yet</h3>
             <p class="text-gray-500">This user hasn't started any sessions</p>
