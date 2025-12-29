@@ -50,7 +50,7 @@ const stats = ref({
 const users = ref([]);
 const userSessions = ref([]);
 const sessionFlows = ref([]);
-const activeView = ref('users'); // 'users' or 'overview'
+const activeView = ref('overview'); // 'users' or 'overview'
 
 // AG Grid configuration
 const columnDefs = ref([
@@ -456,6 +456,20 @@ onMounted(async () => {
     <!-- View Toggle Tabs -->
     <div class="bg-white border-b border-gray-200 px-6">
       <div class="flex gap-4">
+          <button
+          @click="switchView('overview')"
+          :class="[
+            'px-4 py-3 font-medium text-sm transition-all relative',
+            activeView === 'overview'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          ]"
+        >
+          <div class="flex items-center gap-2">
+            <BarChart3 :size="18" />
+            <span>Project Overview</span>
+          </div>
+        </button>
         <button
           @click="switchView('users')"
           :class="[
@@ -470,20 +484,7 @@ onMounted(async () => {
             <span>Users & Journey</span>
           </div>
         </button>
-        <button
-          @click="switchView('overview')"
-          :class="[
-            'px-4 py-3 font-medium text-sm transition-all relative',
-            activeView === 'overview'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-600 hover:text-gray-900'
-          ]"
-        >
-          <div class="flex items-center gap-2">
-            <BarChart3 :size="18" />
-            <span>Project Overview</span>
-          </div>
-        </button>
+      
       </div>
     </div>
 
