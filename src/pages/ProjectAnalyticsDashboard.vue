@@ -197,6 +197,7 @@ const switchView = (view) => {
   activeView.value = view;
   if (view === 'overview') {
     selectedUserId.value = null;
+    console.log('Stats data:', stats.value);
   }
   console.log('Current activeView:', activeView.value);
 };
@@ -602,10 +603,11 @@ onMounted(async () => {
             </div>
           </div>
         </div>
+      </div>  <!-- End Users & Journey View -->
       </div>
 
       <!-- Project Overview (Full Width) -->
-      <div v-if="activeView === 'overview'" class="h-full overflow-y-auto p-6">
+        <div v-if="activeView === 'overview'" class="h-full overflow-y-auto p-6">
         <div class="max-w-7xl mx-auto">
           <!-- Key Metrics -->
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -689,7 +691,7 @@ onMounted(async () => {
         </div>
       </div>
     </div>
-  </div>
+  
 </template>
 
 <style scoped>
