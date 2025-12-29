@@ -11,18 +11,33 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
 async function fetchAPI(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   
+  // Add auth token if available
+  const token = localStorage.getItem('auth_token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
   try {
     const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
       ...options,
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      
+      // Handle 401 Unauthorized
+      if (response.status === 401) {
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+      }
+      
+      throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
     return await response.json();
@@ -31,6 +46,123 @@ async function fetchAPI(endpoint, options = {}) {
     throw error;
   }
 }
+
+/**
+ * Authentication API Endpoints
+ */
+export const authAPI = {
+  // Login
+  login(email, password) {
+    return fetchAPI('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  },
+  
+  // Get current user
+  getCurrentUser() {
+    return fetchAPI('/auth/me');
+  },
+  
+  // Change password
+  changePassword(currentPassword, newPassword) {
+    return fetchAPI('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+  
+  // Verify token
+  verifyToken() {
+    return fetchAPI('/auth/verify');
+  },
+};
+
+/**
+ * Organization API Endpoints
+ */
+export const organizationAPI = {
+  // Get all organizations
+  getAll() {
+    return fetchAPI('/organizations');
+  },
+  
+  // Get organization by ID
+  getById(id) {
+    return fetchAPI(`/organizations/${id}`);
+  },
+  
+  // Create organization
+  create(data) {
+    return fetchAPI('/organizations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  
+  // Update organization
+  update(id, data) {
+    return fetchAPI(`/organizations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+  
+  // Delete organization
+  delete(id) {
+    return fetchAPI(`/organizations/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  
+  // Get organization stats
+  getStats(id) {
+    return fetchAPI(`/organizations/${id}/stats`);
+  },
+};
+
+/**
+ * Project API Endpoints
+ */
+export const projectAPI = {
+  // Get all projects (with optional query params)
+  getAll(queryString = '') {
+    return fetchAPI(`/projects${queryString}`);
+  },
+  
+  // Get project by ID
+  getById(id) {
+    return fetchAPI(`/projects/${id}`);
+  },
+  
+  // Create project
+  create(data) {
+    return fetchAPI('/projects', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  
+  // Update project
+  update(id, data) {
+    return fetchAPI(`/projects/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+  
+  // Delete project
+  delete(id) {
+    return fetchAPI(`/projects/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  
+  // Get users for a project
+  getUsers(id) {
+    return fetchAPI(`/projects/${id}/users`);
+  },
+};
 
 /**
  * User API Endpoints
